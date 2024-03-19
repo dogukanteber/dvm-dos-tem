@@ -1407,24 +1407,26 @@ def detect_block_with_pft_info(cmtdatablock):
 
 
 def parse_header_line(line: str) -> CMT:
-  '''Splits a header line into components: cmtkey, text name, comment.
+  """
+  Parses a header line from a CMT datablock into its constituent components,
+  including the CMT key, the text name, and any comments.
 
-  Assumes a CMT block header line looks like this:
-  // CMT07 // Heath Tundra - (ma.....
-
-  or like this:
-  // CMT07 // Heath Tundra // some other comment...
+  This function is designed to handle CMT block header lines formatted in two
+  common styles:
+  1. // CMT07 // Heath Tundra - (ma.....
+  2. // CMT07 // Heath Tundra // some other comment...
 
   Parameters
   ----------
-  data : str
-    The header line from a CMT datablock.
+  line : str
+    The header line to be parsed, extracted directly from a CMT datablock.
 
   Returns
   -------
-  tuple of (str, str, str)
-    The CMT key, name, and comment as a tuple.
-  '''
+  CMT
+    An instance of the CMT dataclass, populated with the parsed key, name, and
+    comment from the header line.
+  """
 
   header_components = []
   for component in line.strip().split('//'):

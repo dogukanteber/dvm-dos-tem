@@ -11,12 +11,20 @@ import sys
 import csv
 import itertools
 import subprocess
-import tempfile
+from dataclasses import dataclass
 
 # For command line interface
 import sys
 import argparse
 import textwrap
+
+
+@dataclass
+class CMT:
+  key: str
+  num: int
+  name: str
+  comment: str
 
 
 # This helps to more quickly diagnose errors that show up when
@@ -987,21 +995,27 @@ def format_section_csv_v0(section_data, full_data):
   return(s)
 
 
-def get_CMTs_in_file(file_path: str) -> list:
+def get_CMTs_in_file(file_path: str) -> list[CMT]:
   '''
-  This function extracts the CMTs found in a file.
+  Extracts and returns a list of CMT (Community Type) instances from a specified
+  file.
 
-  It creates a dictionary for each CMT found in the file, with the following keys: cmtkey, cmtnum, cmtname, cmtcomments
+  Each CMT instance represents a community type found within the file,
+  encapsulating details such as the community type key, number, name, and any
+  associated comments. These details are parsed from lines within the file that
+  match the expected CMT format.
 
   Parameters
   ----------
-  file_path : str, required
-    The path to a file to read.
+  file_path : str
+    The path to the file from which CMT instances are to be extracted.
 
   Returns
   -------
-  list of dicts
-    A list of dictionaries, each containing information about a CMT found in the file.
+  list[CMT]
+    A list of CMT instances, each representing a community type found in the
+    file. Each instance contains detailed information about the community type,
+    including its key, number, name, and comments.
   '''
 
   with open(file_path) as f:
@@ -1011,16 +1025,9 @@ def get_CMTs_in_file(file_path: str) -> list:
   for line in data:
     line = line.strip().lstrip('//').strip()
     if re.match(r'^CMT\d+', line):
-      cmtkey, cmtname, cmtcomments = parse_header_line(line)
-      cmtnum = int(re.search(r'\d+', cmtkey).group())
-      cmt_list.append(
-        {
-          "cmtkey": cmtkey,
-          "cmtnum": cmtnum,
-          "cmtname": cmtname,
-          "cmtcomment": cmtcomments,
-        }
-      )
+      cmt = parse_header_line(line)
+      cmt.num = int(re.search(r'\d+', cmt.key).group())
+      cmt_list.append(cmt)
 
   return cmt_list
 
@@ -1399,7 +1406,7 @@ def detect_block_with_pft_info(cmtdatablock):
     return False  
 
 
-def parse_header_line(linedata):
+def parse_header_line(line: str) -> CMT:
   '''Splits a header line into components: cmtkey, text name, comment.
 
   Assumes a CMT block header line looks like this:
@@ -1410,42 +1417,41 @@ def parse_header_line(linedata):
 
   Parameters
   ----------
-  data : string
-    Assumed to be valid header line of a CMT datablock. 
+  data : str
+    The header line from a CMT datablock.
 
   Returns
   -------
-  tuple
-    A tuple containing the (cmtkey, cmtname, cmtcomment)
+  tuple of (str, str, str)
+    The CMT key, name, and comment as a tuple.
   '''
 
-  header_components = [_f for _f in linedata.strip().split('//') if _f]
-  clean_header_components = [i.strip() for i in header_components]
+  header_components = []
+  for component in line.strip().split('//'):
+    if component.strip():
+      header_components.append(component.strip())
 
-  if len(clean_header_components) < 2:
-    print("ERROR! Could not find CMT name in ", clean_header_components)
-    sys.exit(-1)
+  if len(header_components) < 2:
+    raise ValueError("Could not find CMT name in ", header_components)
 
-  cmtkey = clean_header_components[0]
+  cmt = CMT(key=header_components[0], num=0, name="", comment="")
+  header_component_count = len(header_components)
 
-  if len(clean_header_components) == 2:
-
+  # There must be a comment following the name using // as a delimiter
+  if header_component_count > 2:
+    cmt.name = header_components[1]
+    cmt.comment = ' '.join(header_components[2:])
+  elif header_component_count == 2:
     # Check for old style comment (using - after name)
-    if len(clean_header_components[1].split('-')) > 1:
-      cmtname = clean_header_components[1].split('-')[0].strip()
-      cmtcomment = '-'.join(clean_header_components[1].split('-')[1:])
+    if len(header_components[1].split('-')) > 1:
+      cmt.name = header_components[1].split('-')[0].strip()
+      cmt.comment = '-'.join(header_components[1].split('-')[1:]).strip()
 
     # No old comment provided
     else:
-      cmtname = clean_header_components[1]
-      cmtcomment = ''
+      cmt.name = header_components[1]
 
-  # There must be a comment following the name using // as a delimiter
-  if len(clean_header_components) > 2:
-    cmtname = clean_header_components[1]
-    cmtcomment = ' '.join(clean_header_components[2:])
-
-  return cmtkey, cmtname, cmtcomment
+  return cmt
 
 
 def get_pft_verbose_name(cmtkey=None, pftkey=None, cmtnum=None, pftnum=None, lookup_path=None):
@@ -1936,16 +1942,13 @@ def get_available_CMTs(pdir):
   x : list of ints
     A list of all the CMTs available in `pdir`. 
   '''
-
-  import ipdb
-  ipdb.set_trace()
   all_cmts = set()
   files = os.listdir(pdir)
   for f in files:
     file_cmts = []
-    data = get_CMTs_in_file(os.path.join(pdir, f))
-    for cmt in data:
-      file_cmts.append((cmt['cmtkey'], cmt['cmtnum'], cmt['cmtname'], f))
+    cmt_list = get_CMTs_in_file(os.path.join(pdir, f))
+    for cmt in cmt_list:
+      file_cmts.append((cmt.key, cmt.num, cmt.name, f))
     file_cmt_set = set([x[1] for x in file_cmts])
     assert len([x[1] for x in file_cmts]) == len(file_cmt_set), "Must not have redundant cmt definitions in a file!: {}".format(f)
     all_cmts = all_cmts.union(file_cmt_set)

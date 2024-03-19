@@ -1,4 +1,6 @@
-from scripts.util.param import get_CMTs_in_file
+import pytest
+
+from scripts.util.param import get_CMTs_in_file, parse_header_line, CMT
 
 
 def test_get_CMTs_in_file(tmp_path):
@@ -19,10 +21,20 @@ def test_get_CMTs_in_file(tmp_path):
     cmts_found = get_CMTs_in_file(temp_file)
 
     expected_cmts = [
-        {'cmtkey': 'CMT01', 'cmtnum': 1, 'cmtname': 'Boreal Black Spruce', 'cmtcomment': ''},
-        {'cmtkey': 'CMT02', 'cmtnum': 2, 'cmtname': 'Boreal White Spruce Forest', 'cmtcomment': ''},
-        {'cmtkey': 'CMT03', 'cmtnum': 3, 'cmtname': 'Boreal Deciduous Forest', 'cmtcomment': ''},
-        {'cmtkey': 'CMT44', 'cmtnum': 44, 'cmtname': 'Shrub Tundra Kougarok', 'cmtcomment': ''}
+        CMT(key='CMT01', num=1, name='Boreal Black Spruce', comment=''),
+        CMT(key='CMT02', num=2, name='Boreal White Spruce Forest', comment=''),
+        CMT(key='CMT03', num=3, name='Boreal Deciduous Forest', comment=''),
+        CMT(key='CMT44', num=44, name='Shrub Tundra Kougarok', comment='')
     ]
 
     assert cmts_found == expected_cmts, "The CMTs found do not match the expected CMTs."
+
+
+@pytest.mark.parametrize("header_line, expected_output", [
+    ("// CMT07 // Heath Tundra - (ma....", ('CMT07', 'Heath Tundra', '(ma....')),
+    ("// CMT07 // Heath Tundra // some other comment...", ('CMT07', 'Heath Tundra', 'some other comment...')),
+    ("// CMT07 // Heath Tundra - some old style comment...", ('CMT07', 'Heath Tundra', 'some old style comment...'))
+])
+def test_parse_header_line(header_line, expected_output):
+    cmt = parse_header_line(header_line)
+    assert (cmt.key, cmt.name, cmt.comment) == expected_output, "The parsed header line does not match the expected output."

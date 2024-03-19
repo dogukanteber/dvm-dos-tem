@@ -987,44 +987,40 @@ def format_section_csv_v0(section_data, full_data):
   return(s)
 
 
-def get_CMTs_in_file(aFile):
+def get_CMTs_in_file(file_path: str) -> list:
   '''
-  Gets a list of the CMTs found in a file.
+  This function extracts the CMTs found in a file.
 
-  Looks at all lines in the file and considers any commented line with the 
-  'CMT' as the first non-whitespace charachters after the initial comment
-  symbol to be a CMT definition line. Parses this line and sets the following
-  keys in a dict: cmtkey, cmtnum, cmtname, cmtcomments
+  It creates a dictionary for each CMT found in the file, with the following keys: cmtkey, cmtnum, cmtname, cmtcomments
 
   Parameters
   ----------
-  aFile : string, required
+  file_path : str, required
     The path to a file to read.
 
   Returns
   -------
   list of dicts
-    A list of dicts with info about the CMTs found in a file.
+    A list of dictionaries, each containing information about a CMT found in the file.
   '''
-  data = read_paramfile(aFile)
+
+  with open(file_path) as f:
+    data = f.readlines()
 
   cmt_list = []
-  for i, line in enumerate(data):
-    # Looks for CMT at the beginning of a comment line.
-    # Will match:
-    # "// CMT06 ....", or "  //   CMT06 ..."
-    # but not
-    # '// some other text CMT06 '
+  for line in data:
     line = line.strip().lstrip('//').strip()
-    if line.find('CMT') == 0:
+    if re.match(r'^CMT\d+', line):
       cmtkey, cmtname, cmtcomments = parse_header_line(line)
-      cmtnum = int(cmtkey[3:])
-      cmtdict = dict(cmtkey=cmtkey, cmtnum=cmtnum, cmtname=cmtname, cmtcomment=cmtcomments)
-      cmt_list.append(cmtdict)
-
-    elif line.find('CMT') > 0:
-      # Must be a comment line, and not the start of a valid CMT data block.
-      pass
+      cmtnum = int(re.search(r'\d+', cmtkey).group())
+      cmt_list.append(
+        {
+          "cmtkey": cmtkey,
+          "cmtnum": cmtnum,
+          "cmtname": cmtname,
+          "cmtcomment": cmtcomments,
+        }
+      )
 
   return cmt_list
 
@@ -1941,6 +1937,8 @@ def get_available_CMTs(pdir):
     A list of all the CMTs available in `pdir`. 
   '''
 
+  import ipdb
+  ipdb.set_trace()
   all_cmts = set()
   files = os.listdir(pdir)
   for f in files:

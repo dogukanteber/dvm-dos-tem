@@ -1406,6 +1406,7 @@ def detect_block_with_pft_info(cmtdatablock):
     return False  
 
 
+# todo: modify each line which uses this function
 def parse_header_line(line: str) -> CMT:
   """
   Parses a header line from a CMT datablock into its constituent components,
@@ -1508,6 +1509,7 @@ def cmtdatablock2dict(cmtdatablock):
 
   pftblock = detect_block_with_pft_info(cmtdatablock)
 
+  # todo: modify this line
   hdr_cmtkey, txtcmtname, hdrcomment = parse_header_line(cmtdatablock[0])
   cmtdict['tag'] = hdr_cmtkey
   cmtdict['cmtname'] = txtcmtname
@@ -1622,6 +1624,7 @@ def format_CMTdatadict(dd, refFile, format=None):
   # Work on formatting the first comment line
   # should produce something like this:
   # // CMT04 // Shrub Tundra // comment...
+  # todo: modify this line
   cmt, name, comment = parse_header_line(get_CMT_datablock(refFile, dd['tag'])[0])
   ll.append("// " + " // ".join((cmt, name, comment)))
 
@@ -1923,36 +1926,36 @@ def is_ecosys_contributor(cmtstr, pftnum=None, compartment=None, ref_params_dir=
   return is_contrib
 
 
-def get_available_CMTs(pdir):
+def get_available_CMTs(parameter_dir: str) -> list[int]:
   '''
   Return list of available CMT numbers in directory.
 
   Only returns CMTs that are defined in all files.
 
   Assumptions:
-   - nothing else in `pdir`
-   - parameter files in `pdir` are valid
+   - nothing else in `parameter_dir`
+   - parameter files in `parameter_dir` are valid
    - CMTs not defined twice in one file
 
   Parameters
   ----------
-  pdir : str
+  parameter_dir : str
     Path to directory of dvmdostem parameter files.
 
   Returns
   -------
   x : list of ints
-    A list of all the CMTs available in `pdir`. 
+    A list of all the CMTs available in `parameter_dir`. 
   '''
   all_cmts = set()
-  files = os.listdir(pdir)
+  files = os.listdir(parameter_dir)
   for f in files:
     file_cmts = []
-    cmt_list = get_CMTs_in_file(os.path.join(pdir, f))
+    cmt_list = get_CMTs_in_file(os.path.join(parameter_dir, f))
     for cmt in cmt_list:
       file_cmts.append((cmt.key, cmt.num, cmt.name, f))
     file_cmt_set = set([x[1] for x in file_cmts])
-    assert len([x[1] for x in file_cmts]) == len(file_cmt_set), "Must not have redundant cmt definitions in a file!: {}".format(f)
+    assert len([x[1] for x in file_cmts]) == len(file_cmt_set), f"Must not have redundant cmt definitions in a file!: {f}"
     all_cmts = all_cmts.union(file_cmt_set)
 
   return list(all_cmts)
@@ -2297,6 +2300,7 @@ def cmdline_run(args):
         # Work on formatting the first comment line
         # should produce something like this:
         # // CMT04 // Shrub Tundra // comment...
+        # todo: modify this line
         cmt, name, comment = parse_header_line(get_CMT_datablock(f, dd['tag'])[0])
         lines.append("// " + " // ".join((cmt, name, comment)))
         
